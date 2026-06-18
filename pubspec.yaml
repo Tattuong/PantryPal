@@ -1,0 +1,46 @@
+name: pantry_pal
+description: PantryPal - Manage food at home, track expiry dates & shopping lists.
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.3 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.6
+  provider: ^6.1.5
+  shared_preferences: ^2.5.3
+  google_fonts: ^6.3.3
+  uuid: ^4.1.0
+  in_app_purchase: ^3.2.1
+  http: ^1.2.2
+  share_plus: ^10.1.4
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/logo.png
+  adaptive_icon_background: "#1B8A5A"
+  adaptive_icon_foreground: assets/logo.png
+  remove_alpha_ios: true
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.png
