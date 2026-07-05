@@ -4,7 +4,7 @@ Smart home food management — track expiry dates, shopping lists, star rewards 
 
 ## Package
 
-`com.pantrypal.app`
+`com.pantrypalmng.pantrypal`
 
 **Default language:** English (Vietnamese optional in Settings)
 

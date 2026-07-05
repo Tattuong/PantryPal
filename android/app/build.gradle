@@ -30,7 +30,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.pantrypal.app"
+    namespace = "com.pantrypalmng.pantrypal"
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
@@ -45,7 +45,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.pantrypal.app"
+        applicationId = "com.pantrypalmng.pantrypal"
         minSdk = flutter.minSdkVersion
         targetSdk = 35
         versionCode = flutterVersionCode.toInteger()

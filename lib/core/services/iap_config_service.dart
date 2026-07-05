@@ -60,7 +60,7 @@ class IapRemoteConfig {
 
   static IapRemoteConfig fallback() => const IapRemoteConfig(
         name: 'PantryPal',
-        id: 'com.pantrypal.app',
+        id: 'com.pantrypalmng.pantrypal',
         version: '1.0.0',
         billingDisabled: false,
         code: 'FULL_IAP',
