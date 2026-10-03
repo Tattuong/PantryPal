@@ -5,7 +5,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 
 import '../constants/iap_constants.dart';
 
-typedef PurchaseCallback = void Function(PurchaseDetails purchase);
+typedef PurchaseCallback = Future<void> Function(PurchaseDetails purchase);
 
 class BillingService {
   final InAppPurchase _iap = InAppPurchase.instance;
@@ -22,6 +22,7 @@ class BillingService {
   Future<void> init({
     required PurchaseCallback onPurchase,
     required VoidCallback onError,
+    required VoidCallback onCanceled,
   }) async {
     if (isInitialized) return;
 
@@ -39,16 +40,31 @@ class BillingService {
           for (final purchase in purchases) {
             if (purchase.status == PurchaseStatus.pending) continue;
 
-            if (purchase.status == PurchaseStatus.error) {
+            if (purchase.status == PurchaseStatus.purchased ||
+                purchase.status == PurchaseStatus.restored) {
+              try {
+                await onPurchase(purchase);
+              } catch (e) {
+                lastError = e.toString();
+                debugPrint('Purchase handler error: $e');
+                onError();
+              }
+            } else if (purchase.status == PurchaseStatus.canceled) {
+              onCanceled();
+            } else if (purchase.status == PurchaseStatus.error) {
               lastError = purchase.error?.message ?? 'Purchase failed';
               onError();
-            } else if (purchase.status == PurchaseStatus.purchased ||
-                purchase.status == PurchaseStatus.restored) {
-              onPurchase(purchase);
             }
 
-            if (purchase.pendingCompletePurchase) {
-              await _iap.completePurchase(purchase);
+            // A user-cancel update is a plain PurchaseDetails with an empty id.
+            // completePurchase expects a store purchase and throws on that object.
+            if (purchase.pendingCompletePurchase &&
+                (purchase.purchaseID?.isNotEmpty ?? false)) {
+              try {
+                await _iap.completePurchase(purchase);
+              } catch (e) {
+                debugPrint('completePurchase error: $e');
+              }
             }
           }
         },
@@ -90,14 +106,26 @@ class BillingService {
 
   Future<bool> buyCoinPack(ProductDetails product) async {
     if (!isAvailable) return false;
-    final param = PurchaseParam(productDetails: product);
-    return _iap.buyConsumable(purchaseParam: param);
+    try {
+      final param = PurchaseParam(productDetails: product);
+      return await _iap.buyConsumable(purchaseParam: param);
+    } catch (e) {
+      lastError = e.toString();
+      debugPrint('buyCoinPack error: $e');
+      return false;
+    }
   }
 
   Future<bool> buyRemoveAds() async {
     if (!isAvailable || removeAdsProduct == null) return false;
-    final param = PurchaseParam(productDetails: removeAdsProduct!);
-    return _iap.buyNonConsumable(purchaseParam: param);
+    try {
+      final param = PurchaseParam(productDetails: removeAdsProduct!);
+      return await _iap.buyNonConsumable(purchaseParam: param);
+    } catch (e) {
+      lastError = e.toString();
+      debugPrint('buyRemoveAds error: $e');
+      return false;
+    }
   }
 
   Future<void> restorePurchases() async {

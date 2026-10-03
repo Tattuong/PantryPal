@@ -50,12 +50,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   @override
   Widget build(BuildContext context) {
     final shopping = context.watch<ShoppingProvider>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final unchecked = shopping.items.where((e) => !e.isChecked).toList();
     final checked = shopping.items.where((e) => e.isChecked).toList();
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(AppStrings.t(context, 'shoppingListTitle')),
         actions: [

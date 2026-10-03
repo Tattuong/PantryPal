@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -17,15 +15,26 @@ enum ShopRewardsTab { all, premium, themes, backgrounds, skins, features }
 
 class ShopScreen extends StatefulWidget {
   final bool embedded;
+  final bool active;
+  final ShopRewardsTab requestedTab;
+  final int tabRequest;
 
-  const ShopScreen({super.key, this.embedded = false});
+  const ShopScreen({
+    super.key,
+    this.embedded = false,
+    this.active = true,
+    this.requestedTab = ShopRewardsTab.all,
+    this.tabRequest = 0,
+  });
 
   @override
   ShopScreenState createState() => ShopScreenState();
 }
 
-class ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateMixin {
+class ShopScreenState extends State<ShopScreen>
+    with SingleTickerProviderStateMixin {
   ShopRewardsTab _tab = ShopRewardsTab.all;
+  late int _appliedTabRequest;
   late final AnimationController _shimmerCtrl;
 
   void selectTab(ShopRewardsTab tab) {
@@ -36,7 +45,26 @@ class ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateMi
   @override
   void initState() {
     super.initState();
-    _shimmerCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
+    _tab = widget.requestedTab;
+    _appliedTabRequest = widget.tabRequest;
+    _shimmerCtrl =
+        AnimationController(vsync: this, duration: const Duration(seconds: 3));
+    if (widget.active) _shimmerCtrl.repeat();
+  }
+
+  @override
+  void didUpdateWidget(ShopScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.tabRequest != _appliedTabRequest) {
+      _appliedTabRequest = widget.tabRequest;
+      _tab = widget.requestedTab;
+    }
+    if (widget.active == oldWidget.active) return;
+    if (widget.active) {
+      _shimmerCtrl.repeat();
+    } else {
+      _shimmerCtrl.stop();
+    }
   }
 
   @override
@@ -47,31 +75,50 @@ class ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateMi
 
   List<ShopItem> _itemsFor(ShopRewardsTab tab) => switch (tab) {
         ShopRewardsTab.all => ShopCatalog.items,
-        ShopRewardsTab.premium => ShopCatalog.items.where((i) => i.category == ShopItemCategory.premium).toList(),
-        ShopRewardsTab.themes => ShopCatalog.items.where((i) => i.category == ShopItemCategory.themes).toList(),
-        ShopRewardsTab.backgrounds => ShopCatalog.items.where((i) => i.category == ShopItemCategory.backgrounds).toList(),
-        ShopRewardsTab.skins => ShopCatalog.items.where((i) => i.category == ShopItemCategory.skins).toList(),
-        ShopRewardsTab.features => ShopCatalog.items.where((i) => i.category == ShopItemCategory.features).toList(),
+        ShopRewardsTab.premium => ShopCatalog.items
+            .where((i) => i.category == ShopItemCategory.premium)
+            .toList(),
+        ShopRewardsTab.themes => ShopCatalog.items
+            .where((i) => i.category == ShopItemCategory.themes)
+            .toList(),
+        ShopRewardsTab.backgrounds => ShopCatalog.items
+            .where((i) => i.category == ShopItemCategory.backgrounds)
+            .toList(),
+        ShopRewardsTab.skins => ShopCatalog.items
+            .where((i) => i.category == ShopItemCategory.skins)
+            .toList(),
+        ShopRewardsTab.features => ShopCatalog.items
+            .where((i) => i.category == ShopItemCategory.features)
+            .toList(),
       };
 
   bool _useGrid(ShopRewardsTab tab) =>
-      tab == ShopRewardsTab.themes || tab == ShopRewardsTab.backgrounds || tab == ShopRewardsTab.skins;
+      tab == ShopRewardsTab.themes ||
+      tab == ShopRewardsTab.backgrounds ||
+      tab == ShopRewardsTab.skins;
 
   List<Widget> _buildAllTabSlivers(List<ShopItem> items) {
     if (items.isEmpty) {
       return [
         SliverFillRemaining(
           hasScrollBody: false,
-          child: Center(child: Text(AppStrings.t(context, 'shopEmptyCategory'), style: const TextStyle(color: AppColors.onSurfaceVariant))),
+          child: Center(
+              child: Text(AppStrings.t(context, 'shopEmptyCategory'),
+                  style: const TextStyle(color: AppColors.onSurfaceVariant))),
         ),
       ];
     }
 
-    final premium = items.where((i) => i.category == ShopItemCategory.premium).toList();
-    final themes = items.where((i) => i.category == ShopItemCategory.themes).toList();
-    final backgrounds = items.where((i) => i.category == ShopItemCategory.backgrounds).toList();
-    final skins = items.where((i) => i.category == ShopItemCategory.skins).toList();
-    final features = items.where((i) => i.category == ShopItemCategory.features).toList();
+    final premium =
+        items.where((i) => i.category == ShopItemCategory.premium).toList();
+    final themes =
+        items.where((i) => i.category == ShopItemCategory.themes).toList();
+    final backgrounds =
+        items.where((i) => i.category == ShopItemCategory.backgrounds).toList();
+    final skins =
+        items.where((i) => i.category == ShopItemCategory.skins).toList();
+    final features =
+        items.where((i) => i.category == ShopItemCategory.features).toList();
 
     return [
       if (premium.isNotEmpty) ...[
@@ -80,7 +127,9 @@ class ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateMi
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
-              (_, i) => Padding(padding: const EdgeInsets.only(bottom: 12), child: _WideRewardCard(item: premium[i])),
+              (_, i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _WideRewardCard(item: premium[i])),
               childCount: premium.length,
             ),
           ),
@@ -104,7 +153,9 @@ class ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateMi
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
-              (_, i) => Padding(padding: const EdgeInsets.only(bottom: 12), child: _WideRewardCard(item: features[i])),
+              (_, i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _WideRewardCard(item: features[i])),
               childCount: features.length,
             ),
           ),
@@ -137,30 +188,45 @@ class ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateMi
     final shop = context.watch<ShopProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final items = _itemsFor(_tab);
-    final bg = isDark ? AppColors.darkBackground : const Color(0xFFF0F2FA);
+    final bg = Theme.of(context).scaffoldBackgroundColor;
 
     final body = Stack(
       children: [
         Positioned(
           top: -120,
           left: -80,
-          child: _GlowOrb(color: AppColors.primary.withValues(alpha: isDark ? 0.35 : 0.22), size: 260),
+          child: _GlowOrb(
+              color: Theme.of(context)
+                  .colorScheme
+                  .primary
+                  .withValues(alpha: isDark ? 0.35 : 0.22),
+              size: 260),
         ),
         Positioned(
           top: 40,
           right: -60,
-          child: _GlowOrb(color: AppColors.accent.withValues(alpha: isDark ? 0.25 : 0.15), size: 200),
+          child: _GlowOrb(
+              color: AppColors.accent.withValues(alpha: isDark ? 0.25 : 0.15),
+              size: 200),
         ),
         SafeArea(
           child: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              SliverToBoxAdapter(child: _RewardsHeader(embedded: widget.embedded, shimmer: _shimmerCtrl)),
-              if (shop.configStatus == IapConfigStatus.timeout || shop.configStatus == IapConfigStatus.networkError)
-                SliverToBoxAdapter(child: _ConfigBanner(status: shop.configStatus)),
-              SliverToBoxAdapter(child: _StarBalanceCard(shop: shop, shimmer: _shimmerCtrl)),
+              SliverToBoxAdapter(
+                  child: _RewardsHeader(
+                      embedded: widget.embedded, shimmer: _shimmerCtrl)),
+              if (shop.configStatus == IapConfigStatus.timeout ||
+                  shop.configStatus == IapConfigStatus.networkError)
+                SliverToBoxAdapter(
+                    child: _ConfigBanner(status: shop.configStatus)),
+              SliverToBoxAdapter(
+                  child: _StarBalanceCard(shop: shop, shimmer: _shimmerCtrl)),
               SliverToBoxAdapter(child: _MissionCarousel(shop: shop)),
-              SliverToBoxAdapter(child: _TabStrip(selected: _tab, onSelect: (t) => setState(() => _tab = t))),
+              SliverToBoxAdapter(
+                  child: _TabStrip(
+                      selected: _tab,
+                      onSelect: (t) => setState(() => _tab = t))),
               if (_tab == ShopRewardsTab.all)
                 ..._buildAllTabSlivers(items)
               else if (items.isEmpty)
@@ -170,9 +236,14 @@ class ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateMi
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.onSurfaceVariant.withValues(alpha: 0.5)),
+                        Icon(Icons.inventory_2_outlined,
+                            size: 48,
+                            color: AppColors.onSurfaceVariant
+                                .withValues(alpha: 0.5)),
                         const SizedBox(height: 12),
-                        Text(AppStrings.t(context, 'shopEmptyCategory'), style: const TextStyle(color: AppColors.onSurfaceVariant)),
+                        Text(AppStrings.t(context, 'shopEmptyCategory'),
+                            style: const TextStyle(
+                                color: AppColors.onSurfaceVariant)),
                       ],
                     ),
                   ),
@@ -185,7 +256,8 @@ class ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateMi
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (_, i) => Padding(
-                        padding: EdgeInsets.only(bottom: i < items.length - 1 ? 12 : 0),
+                        padding: EdgeInsets.only(
+                            bottom: i < items.length - 1 ? 12 : 0),
                         child: _WideRewardCard(item: items[i]),
                       ),
                       childCount: items.length,
@@ -214,13 +286,16 @@ class _GlowOrb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-        child: const SizedBox.expand(),
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [color, color.withValues(alpha: 0)],
+          ),
+        ),
       ),
     );
   }
@@ -243,7 +318,11 @@ class _RewardsHeader extends StatelessWidget {
             IconButton(
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-              style: IconButton.styleFrom(backgroundColor: AppColors.primary.withValues(alpha: 0.08)),
+              style: IconButton.styleFrom(
+                  backgroundColor: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.08)),
             ),
           Expanded(
             child: Column(
@@ -251,12 +330,19 @@ class _RewardsHeader extends StatelessWidget {
               children: [
                 Text(
                   AppStrings.t(context, 'shopTitle'),
-                  style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: -0.8, height: 1.1),
+                  style: GoogleFonts.outfit(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.8,
+                      height: 1.1),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   AppStrings.t(context, 'shopSubtitle'),
-                  style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13, height: 1.35),
+                  style: TextStyle(
+                      color: AppColors.onSurfaceVariant,
+                      fontSize: 13,
+                      height: 1.35),
                 ),
               ],
             ),
@@ -265,7 +351,10 @@ class _RewardsHeader extends StatelessWidget {
             animation: shimmer,
             builder: (_, __) => Transform.rotate(
               angle: shimmer.value * 0.4,
-              child: Icon(Icons.auto_awesome, color: AppColors.coin.withValues(alpha: 0.7 + shimmer.value * 0.3), size: 22),
+              child: Icon(Icons.auto_awesome,
+                  color: AppColors.coin
+                      .withValues(alpha: 0.7 + shimmer.value * 0.3),
+                  size: 22),
             ),
           ),
         ],
@@ -286,104 +375,134 @@ class _StarBalanceCard extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [const Color(0xFF1A2235), const Color(0xFF252D45)]
-                    : [Colors.white.withValues(alpha: 0.92), Colors.white.withValues(alpha: 0.75)],
-              ),
-              border: Border.all(color: (isDark ? Colors.white : AppColors.primary).withValues(alpha: 0.08)),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.08),
-                  blurRadius: 24,
-                  offset: const Offset(0, 12),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    AnimatedBuilder(
-                      animation: shimmer,
-                      builder: (_, __) => Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              AppColors.coin.withValues(alpha: 0.35 + shimmer.value * 0.15),
-                              AppColors.coin.withValues(alpha: 0.05),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const Icon(Icons.star_rounded, color: AppColors.coin, size: 34),
+      child: Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [const Color(0xFF1A2235), const Color(0xFF252D45)]
+                : [
+                    Colors.white.withValues(alpha: 0.92),
+                    Colors.white.withValues(alpha: 0.75)
                   ],
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppStrings.t(context, 'yourWallet'),
-                        style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            '${shop.coins}',
-                            style: GoogleFonts.outfit(fontSize: 40, fontWeight: FontWeight.w800, letterSpacing: -1),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(AppStrings.t(context, 'coinsLabel'), style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 14)),
+          ),
+          border: Border.all(
+              color: (isDark
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.primary)
+                  .withValues(alpha: 0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context)
+                  .colorScheme
+                  .primary
+                  .withValues(alpha: isDark ? 0.15 : 0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                AnimatedBuilder(
+                  animation: shimmer,
+                  builder: (_, __) => Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          AppColors.coin
+                              .withValues(alpha: 0.35 + shimmer.value * 0.15),
+                          AppColors.coin.withValues(alpha: 0.05),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-                if (!shop.isBillingDisabled)
-                  Material(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(16),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () => CoinPurchaseSheet.show(context),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.add_rounded, color: Colors.white, size: 18),
-                            const SizedBox(width: 4),
-                            Text(
-                              AppStrings.t(context, 'buyCoins'),
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
-                            ),
-                          ],
-                        ),
+                const Icon(Icons.star_rounded, color: AppColors.coin, size: 34),
+              ],
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      AppStrings.t(context, 'yourWallet'),
+                      style: const TextStyle(
+                        color: AppColors.onSurfaceVariant,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-              ],
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          '${shop.coins}',
+                          style: GoogleFonts.outfit(
+                              fontSize: 36,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -1),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          AppStrings.t(context, 'coinsLabel'),
+                          style: const TextStyle(
+                              color: AppColors.onSurfaceVariant, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            if (!shop.isBillingDisabled)
+              Material(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => CoinPurchaseSheet.show(context),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.add_rounded,
+                            color: Colors.white, size: 18),
+                        const SizedBox(width: 4),
+                        Text(
+                          AppStrings.t(context, 'buyCoins'),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -426,59 +545,65 @@ class _MissionCarouselState extends State<_MissionCarousel> {
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              _MissionTile(
-                icon: Icons.wb_sunny_rounded,
-                iconColor: const Color(0xFFFFB020),
-                title: AppStrings.t(context, 'earnCoins'),
-                subtitle: dailyDone ? AppStrings.t(context, 'dailyRewardDone') : AppStrings.t(context, 'earnStepDaily'),
-                actionLabel: dailyDone ? null : AppStrings.t(context, 'claimDailyButton'),
-                done: dailyDone,
-                onAction: dailyDone
-                    ? null
-                    : () async {
-                        final claimed = await widget.shop.claimDailyReward();
-                        if (!mounted) return;
-                        _refreshDaily();
-                        if (!claimed) {
-                          AppToast.show(context, title: AppStrings.t(context, 'dailyRewardDone'), icon: Icons.info_outline);
-                        }
-                      },
-              ),
-              _MissionTile(
-                icon: Icons.add_circle_outline,
-                iconColor: AppColors.primary,
-                title: AppStrings.t(context, 'earnStepAddFood'),
-                subtitle: AppStrings.t(context, 'earnStepAddFoodDesc'),
-                done: false,
-              ),
-              _MissionTile(
-                icon: Icons.shopping_cart_checkout_outlined,
-                iconColor: AppColors.success,
-                title: AppStrings.t(context, 'earnStepShopping'),
-                subtitle: AppStrings.t(context, 'earnStepShoppingDesc'),
-                done: false,
-              ),
-              _MissionTile(
-                icon: Icons.share_outlined,
-                iconColor: const Color(0xFF74B9FF),
-                title: AppStrings.t(context, 'earnStepShare'),
-                subtitle: AppStrings.t(context, 'earnStepShareDesc'),
-                done: false,
-              ),
-              if (!widget.shop.isBillingDisabled)
+              children: [
                 _MissionTile(
-                  icon: Icons.bolt_rounded,
-                  iconColor: AppColors.accent,
-                  title: AppStrings.t(context, 'buyCoins'),
-                  subtitle: AppStrings.t(context, 'earnStepBuy'),
-                  actionLabel: AppStrings.t(context, 'buyWithGooglePlay'),
-                  onAction: () => CoinPurchaseSheet.show(context),
+                  icon: Icons.wb_sunny_rounded,
+                  iconColor: const Color(0xFFFFB020),
+                  title: AppStrings.t(context, 'earnCoins'),
+                  subtitle: dailyDone
+                      ? AppStrings.t(context, 'dailyRewardDone')
+                      : AppStrings.t(context, 'earnStepDaily'),
+                  actionLabel: dailyDone
+                      ? null
+                      : AppStrings.t(context, 'claimDailyButton'),
+                  done: dailyDone,
+                  onAction: dailyDone
+                      ? null
+                      : () async {
+                          final claimed = await widget.shop.claimDailyReward();
+                          if (!mounted) return;
+                          _refreshDaily();
+                          if (!claimed) {
+                            AppToast.show(context,
+                                title: AppStrings.t(context, 'dailyRewardDone'),
+                                icon: Icons.info_outline);
+                          }
+                        },
                 ),
-            ],
+                _MissionTile(
+                  icon: Icons.add_circle_outline,
+                  iconColor: Theme.of(context).colorScheme.primary,
+                  title: AppStrings.t(context, 'earnStepAddFood'),
+                  subtitle: AppStrings.t(context, 'earnStepAddFoodDesc'),
+                  done: false,
+                ),
+                _MissionTile(
+                  icon: Icons.shopping_cart_checkout_outlined,
+                  iconColor: AppColors.success,
+                  title: AppStrings.t(context, 'earnStepShopping'),
+                  subtitle: AppStrings.t(context, 'earnStepShoppingDesc'),
+                  done: false,
+                ),
+                _MissionTile(
+                  icon: Icons.share_outlined,
+                  iconColor: const Color(0xFF74B9FF),
+                  title: AppStrings.t(context, 'earnStepShare'),
+                  subtitle: AppStrings.t(context, 'earnStepShareDesc'),
+                  done: false,
+                ),
+                if (!widget.shop.isBillingDisabled)
+                  _MissionTile(
+                    icon: Icons.bolt_rounded,
+                    iconColor: AppColors.accent,
+                    title: AppStrings.t(context, 'buyCoins'),
+                    subtitle: AppStrings.t(context, 'earnStepBuy'),
+                    actionLabel: AppStrings.t(context, 'buyWithGooglePlay'),
+                    onAction: () => CoinPurchaseSheet.show(context),
+                  ),
+              ],
+            ),
           ),
-        ),
-      );
+        );
       },
     );
   }
@@ -495,7 +620,10 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Text(
         AppStrings.t(context, labelKey),
-        style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurfaceVariant),
+        style: GoogleFonts.outfit(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurfaceVariant),
       ),
     );
   }
@@ -529,7 +657,7 @@ class _MissionTile extends StatelessWidget {
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: iconColor.withValues(alpha: 0.15)),
         boxShadow: [
@@ -559,14 +687,18 @@ class _MissionTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, height: 1.2),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 12, height: 1.2),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 10, height: 1.2),
+                  style: const TextStyle(
+                      color: AppColors.onSurfaceVariant,
+                      fontSize: 10,
+                      height: 1.2),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -577,7 +709,11 @@ class _MissionTile extends StatelessWidget {
                     behavior: HitTestBehavior.opaque,
                     child: Text(
                       actionLabel!,
-                      style: TextStyle(color: iconColor, fontWeight: FontWeight.w800, fontSize: 10, height: 1.1),
+                      style: TextStyle(
+                          color: iconColor,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10,
+                          height: 1.1),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -589,7 +725,8 @@ class _MissionTile extends StatelessWidget {
           if (done)
             Padding(
               padding: const EdgeInsets.only(left: 6),
-              child: Icon(Icons.check_circle_rounded, color: AppColors.success.withValues(alpha: 0.9), size: 18),
+              child: Icon(Icons.check_circle_rounded,
+                  color: AppColors.success.withValues(alpha: 0.9), size: 18),
             ),
         ],
       ),
@@ -619,7 +756,9 @@ class _TabStrip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(AppStrings.t(context, 'shopBrowse'), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w800)),
+          Text(AppStrings.t(context, 'shopBrowse'),
+              style: GoogleFonts.outfit(
+                  fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 12),
           SizedBox(
             height: 38,
@@ -638,10 +777,14 @@ class _TabStrip extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: active ? AppColors.primary : Colors.transparent,
+                      color: active
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: active ? AppColors.primary : AppColors.onSurfaceVariant.withValues(alpha: 0.2),
+                        color: active
+                            ? Theme.of(context).colorScheme.primary
+                            : AppColors.onSurfaceVariant.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Text(
@@ -679,16 +822,30 @@ class _BentoRewardCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
-        onTap: owned ? null : () => _RewardActions.tryPurchase(context, shop, item),
+        onTap: owned
+            ? null
+            : () => _RewardActions.tryPurchase(context, shop, item),
         child: Ink(
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: isActive ? AppColors.primary : (isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.04)),
+              color: isActive
+                  ? Theme.of(context).colorScheme.primary
+                  : (isDark
+                      ? Colors.white12
+                      : Colors.black.withValues(alpha: 0.04)),
               width: isActive ? 2 : 1,
             ),
-            boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 6))],
+            boxShadow: [
+              BoxShadow(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6))
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -696,7 +853,8 @@ class _BentoRewardCard extends StatelessWidget {
               Expanded(
                 flex: 3,
                 child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(23)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(23)),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -706,7 +864,8 @@ class _BentoRewardCard extends StatelessWidget {
                           top: 8,
                           right: 8,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.45),
                               borderRadius: BorderRadius.circular(20),
@@ -714,11 +873,20 @@ class _BentoRewardCard extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(isActive ? Icons.radio_button_checked : Icons.check, color: Colors.white, size: 12),
+                                Icon(
+                                    isActive
+                                        ? Icons.radio_button_checked
+                                        : Icons.check,
+                                    color: Colors.white,
+                                    size: 12),
                                 const SizedBox(width: 4),
                                 Text(
-                                  AppStrings.t(context, isActive ? 'active' : 'owned'),
-                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                                  AppStrings.t(
+                                      context, isActive ? 'active' : 'owned'),
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700),
                                 ),
                               ],
                             ),
@@ -735,19 +903,27 @@ class _BentoRewardCard extends StatelessWidget {
                   children: [
                     Text(
                       AppStrings.t(context, item.nameKey),
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 13),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       AppStrings.t(context, item.descKey),
-                      style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 10, height: 1.25),
+                      style: const TextStyle(
+                          color: AppColors.onSurfaceVariant,
+                          fontSize: 10,
+                          height: 1.25),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 10),
-                    _RewardActions(item: item, owned: owned, isActive: isActive, dense: true),
+                    _RewardActions(
+                        item: item,
+                        owned: owned,
+                        isActive: isActive,
+                        dense: true),
                   ],
                 ),
               ),
@@ -774,10 +950,19 @@ class _WideRewardCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 0),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isActive ? AppColors.primary : Colors.transparent, width: 2),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05), blurRadius: 16, offset: const Offset(0, 6))],
+        border: Border.all(
+            color: isActive
+                ? Theme.of(context).colorScheme.primary
+                : Colors.transparent,
+            width: 2),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 6))
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -786,16 +971,23 @@ class _WideRewardCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(18),
-              child: SizedBox(width: 72, height: 72, child: _ItemVisual(item: item)),
+              child: SizedBox(
+                  width: 72, height: 72, child: _ItemVisual(item: item)),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(AppStrings.t(context, item.nameKey), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                  Text(AppStrings.t(context, item.nameKey),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 15)),
                   const SizedBox(height: 4),
-                  Text(AppStrings.t(context, item.descKey), style: const TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11, height: 1.35)),
+                  Text(AppStrings.t(context, item.descKey),
+                      style: const TextStyle(
+                          color: AppColors.onSurfaceVariant,
+                          fontSize: 11,
+                          height: 1.35)),
                   const SizedBox(height: 10),
                   _RewardActions(item: item, owned: owned, isActive: isActive),
                 ],
@@ -821,7 +1013,10 @@ class _ItemVisual extends StatelessWidget {
       if (preset != null) {
         return DecoratedBox(
           decoration: BoxDecoration(gradient: preset.headerGradient),
-          child: Center(child: Icon(Icons.palette_rounded, color: Colors.white.withValues(alpha: 0.9), size: large ? 32 : 26)),
+          child: Center(
+              child: Icon(Icons.palette_rounded,
+                  color: Colors.white.withValues(alpha: 0.9),
+                  size: large ? 32 : 26)),
         );
       }
     }
@@ -830,7 +1025,10 @@ class _ItemVisual extends StatelessWidget {
       if (bg != null) {
         return DecoratedBox(
           decoration: BoxDecoration(gradient: bg.gradient),
-          child: Center(child: Icon(Icons.layers_rounded, color: Colors.white.withValues(alpha: 0.85), size: large ? 28 : 22)),
+          child: Center(
+              child: Icon(Icons.layers_rounded,
+                  color: Colors.white.withValues(alpha: 0.85),
+                  size: large ? 28 : 22)),
         );
       }
     }
@@ -840,17 +1038,23 @@ class _ItemVisual extends StatelessWidget {
         return DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [skin.accentColor.withValues(alpha: 0.5), skin.borderColor.withValues(alpha: 0.35)],
+              colors: [
+                skin.accentColor.withValues(alpha: 0.5),
+                skin.borderColor.withValues(alpha: 0.35)
+              ],
             ),
           ),
-          child: Center(child: Icon(Icons.inventory_2_rounded, color: Colors.white.withValues(alpha: 0.9), size: large ? 28 : 22)),
+          child: Center(
+              child: Icon(Icons.inventory_2_rounded,
+                  color: Colors.white.withValues(alpha: 0.9),
+                  size: large ? 28 : 22)),
         );
       }
     }
 
     final tint = switch (item.category) {
       ShopItemCategory.premium => AppColors.accent,
-      ShopItemCategory.features => AppColors.primary,
+      ShopItemCategory.features => Theme.of(context).colorScheme.primary,
       _ => AppColors.coin,
     };
 
@@ -882,12 +1086,15 @@ class _RewardActions extends StatelessWidget {
 
   static bool itemIsActive(ShopProvider shop, ShopItem item) {
     if (item.type == ShopItemType.theme) return shop.activeThemeId == item.id;
-    if (item.type == ShopItemType.background) return shop.activeBackgroundId == item.id;
+    if (item.type == ShopItemType.background) {
+      return shop.activeBackgroundId == item.id;
+    }
     if (item.type == ShopItemType.skin) return shop.activeSkinId == item.id;
     return shop.ownsItem(item.id);
   }
 
-  static void tryPurchase(BuildContext context, ShopProvider shop, ShopItem item) {
+  static void tryPurchase(
+      BuildContext context, ShopProvider shop, ShopItem item) {
     if (shop.ownsItem(item.id)) return;
     _purchase(context, shop, item);
   }
@@ -896,7 +1103,10 @@ class _RewardActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final shop = context.watch<ShopProvider>();
 
-    if (owned && (item.type == ShopItemType.theme || item.type == ShopItemType.background || item.type == ShopItemType.skin)) {
+    if (owned &&
+        (item.type == ShopItemType.theme ||
+            item.type == ShopItemType.background ||
+            item.type == ShopItemType.skin)) {
       return Wrap(
         spacing: 6,
         runSpacing: 4,
@@ -927,7 +1137,8 @@ class _RewardActions extends StatelessWidget {
                 } else {
                   await shop.resetSkinToDefault();
                 }
-                AppToast.show(context, title: AppStrings.t(context, 'resetToDefault'));
+                AppToast.show(context,
+                    title: AppStrings.t(context, 'resetToDefault'));
               },
             ),
         ],
@@ -937,9 +1148,14 @@ class _RewardActions extends StatelessWidget {
     if (owned) {
       return Row(
         children: [
-          Icon(Icons.verified_rounded, color: AppColors.success, size: dense ? 16 : 18),
+          Icon(Icons.verified_rounded,
+              color: AppColors.success, size: dense ? 16 : 18),
           const SizedBox(width: 6),
-          Text(AppStrings.t(context, 'owned'), style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w700, fontSize: dense ? 11 : 13)),
+          Text(AppStrings.t(context, 'owned'),
+              style: TextStyle(
+                  color: AppColors.success,
+                  fontWeight: FontWeight.w700,
+                  fontSize: dense ? 11 : 13)),
         ],
       );
     }
@@ -957,14 +1173,19 @@ class _RewardActions extends StatelessWidget {
                     final ok = await shop.buyRemoveAdsViaBilling();
                     if (!context.mounted) return;
                     if (ok) {
-                      AppToast.show(context, title: AppStrings.t(context, 'openingBilling'));
+                      AppToast.show(context,
+                          title: AppStrings.t(context, 'openingBilling'));
                     } else if (shop.lastMessage != null) {
-                      AppToast.show(context, title: AppStrings.t(context, shop.lastMessage!));
+                      AppToast.show(context,
+                          title: AppStrings.t(context, shop.lastMessage!));
                     }
                   },
             child: Text(
               '${AppStrings.t(context, 'removeAdsIap')}${shop.billing.removeAdsProduct != null ? ' · ${shop.billing.removeAdsProduct!.price}' : ''}',
-              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: dense ? 10 : 11),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: dense ? 10 : 11),
             ),
           ),
         ],
@@ -974,7 +1195,8 @@ class _RewardActions extends StatelessWidget {
     return _StarPriceButton(item: item, dense: dense);
   }
 
-  static void _purchase(BuildContext context, ShopProvider shop, ShopItem item) {
+  static void _purchase(
+      BuildContext context, ShopProvider shop, ShopItem item) {
     final result = shop.buyWithCoins(item.id);
     switch (result) {
       case ShopPurchaseResult.success:
@@ -987,7 +1209,10 @@ class _RewardActions extends StatelessWidget {
           message: applied ? AppStrings.t(context, item.nameKey) : null,
         );
       case ShopPurchaseResult.insufficientCoins:
-        AppToast.show(context, title: AppStrings.t(context, 'insufficientCoins'), icon: Icons.warning_amber_rounded, color: AppColors.warning);
+        AppToast.show(context,
+            title: AppStrings.t(context, 'insufficientCoins'),
+            icon: Icons.warning_amber_rounded,
+            color: AppColors.warning);
         if (!shop.isBillingDisabled) CoinPurchaseSheet.show(context);
       case ShopPurchaseResult.alreadyOwned:
         AppToast.show(context, title: AppStrings.t(context, 'alreadyOwned'));
@@ -1010,24 +1235,32 @@ class _StarPriceButton extends StatelessWidget {
     final canAfford = shop.coins >= item.price;
 
     return Material(
-      color: canAfford ? AppColors.coin.withValues(alpha: 0.15) : AppColors.surfaceVariant,
+      color: canAfford
+          ? AppColors.coin.withValues(alpha: 0.15)
+          : AppColors.surfaceVariant,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: () => _RewardActions._purchase(context, shop, item),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: dense ? 10 : 14, vertical: dense ? 8 : 10),
+          padding: EdgeInsets.symmetric(
+              horizontal: dense ? 10 : 14, vertical: dense ? 8 : 10),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.star_rounded, size: dense ? 14 : 16, color: canAfford ? AppColors.coin : AppColors.onSurfaceVariant),
+              Icon(Icons.star_rounded,
+                  size: dense ? 14 : 16,
+                  color:
+                      canAfford ? AppColors.coin : AppColors.onSurfaceVariant),
               const SizedBox(width: 4),
               Text(
                 '${item.price}',
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: dense ? 12 : 14,
-                  color: canAfford ? AppColors.onSurface : AppColors.onSurfaceVariant,
+                  color: canAfford
+                      ? AppColors.onSurface
+                      : AppColors.onSurfaceVariant,
                 ),
               ),
             ],
@@ -1043,12 +1276,14 @@ class _ActionChip extends StatelessWidget {
   final bool filled;
   final VoidCallback onTap;
 
-  const _ActionChip({required this.label, required this.onTap, this.filled = false});
+  const _ActionChip(
+      {required this.label, required this.onTap, this.filled = false});
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: filled ? AppColors.primary : Colors.transparent,
+      color:
+          filled ? Theme.of(context).colorScheme.primary : Colors.transparent,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -1057,14 +1292,21 @@ class _ActionChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: filled ? null : Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+            border: filled
+                ? null
+                : Border.all(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.4)),
           ),
           child: Text(
             label,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: filled ? Colors.white : AppColors.primary,
+              color:
+                  filled ? Colors.white : Theme.of(context).colorScheme.primary,
             ),
           ),
         ),
@@ -1094,9 +1336,13 @@ class _ConfigBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.wifi_tethering_error_rounded, size: 18, color: AppColors.warning),
+          const Icon(Icons.wifi_tethering_error_rounded,
+              size: 18, color: AppColors.warning),
           const SizedBox(width: 10),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 11, color: AppColors.warning, height: 1.3))),
+          Expanded(
+              child: Text(text,
+                  style: const TextStyle(
+                      fontSize: 11, color: AppColors.warning, height: 1.3))),
         ],
       ),
     );

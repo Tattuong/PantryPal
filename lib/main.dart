@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
+import 'core/constants/ad_constants.dart';
 import 'core/navigation/app_navigator.dart';
+import 'core/services/ad_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/storage_service.dart';
 import 'providers/locale_provider.dart';
@@ -29,6 +33,9 @@ Future<void> main() async {
   await appLocaleProvider.init();
 
   runApp(const PantryPalApp());
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (AdConstants.isConfigured) unawaited(AdService.init());
+  });
 }
 
 class PantryPalApp extends StatelessWidget {
@@ -51,9 +58,12 @@ class PantryPalApp extends StatelessWidget {
 
           SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
-            statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-            systemNavigationBarColor: isDark ? preset.darkBackground : preset.background,
-            systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+            statusBarIconBrightness:
+                isDark ? Brightness.light : Brightness.dark,
+            systemNavigationBarColor:
+                isDark ? preset.darkBackground : preset.background,
+            systemNavigationBarIconBrightness:
+                isDark ? Brightness.light : Brightness.dark,
           ));
 
           return MaterialApp(
@@ -64,8 +74,10 @@ class PantryPalApp extends StatelessWidget {
             darkTheme: preset.darkTheme(),
             themeMode: theme.themeMode,
             locale: locale.locale,
-            localeResolutionCallback: (_, supportedLocales) => supportedLocales.first,
-            builder: (context, child) => CoinRewardListener(child: child ?? const SizedBox.shrink()),
+            localeResolutionCallback: (_, supportedLocales) =>
+                supportedLocales.first,
+            builder: (context, child) =>
+                CoinRewardListener(child: child ?? const SizedBox.shrink()),
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,

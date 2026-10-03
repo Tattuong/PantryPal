@@ -22,7 +22,7 @@ enum ShopPurchaseResult {
   error,
 }
 
-class ShopProvider extends ChangeNotifier {
+class ShopProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const _coinsKey = 'pp_coins';
   static const _ownedKey = 'pp_owned_items';
   static const _activeThemeKey = 'pp_active_theme';
@@ -50,6 +50,8 @@ class ShopProvider extends ChangeNotifier {
   String _activeBackgroundId = ShopCatalog.defaultBackgroundId;
   String _activeSkinId = ShopCatalog.defaultSkinId;
   bool _isPurchasing = false;
+  int _purchaseAttempt = 0;
+  Timer? _purchaseWatchdog;
   bool _isLoading = true;
   String? _lastMessage;
   Set<String> _processedPurchaseIds = {};
@@ -86,6 +88,10 @@ class ShopProvider extends ChangeNotifier {
 
   bool _initialized = false;
 
+  ShopProvider() {
+    WidgetsBinding.instance.addObserver(this);
+  }
+
   Future<void> init() async {
     if (_initialized) return;
     _initialized = true;
@@ -96,7 +102,8 @@ class ShopProvider extends ChangeNotifier {
     if (!isBillingDisabled && (Platform.isAndroid || Platform.isIOS)) {
       await _billing.init(
         onPurchase: _handlePurchase,
-        onError: () => notifyListeners(),
+        onError: _onBillingFailure,
+        onCanceled: _onBillingCanceled,
       );
     }
 
@@ -199,15 +206,9 @@ class ShopProvider extends ChangeNotifier {
 
   Future<bool> buyCoinPack(ProductDetails product) async {
     if (isBillingDisabled || !_billing.isAvailable) return false;
-    _isPurchasing = true;
-    _lastMessage = null;
-    notifyListeners();
+    _beginPurchase();
     final ok = await _billing.buyCoinPack(product);
-    if (!ok) {
-      _isPurchasing = false;
-      _lastMessage = 'purchaseFailed';
-      notifyListeners();
-    }
+    if (!ok) _onBillingFailure();
     return ok;
   }
 
@@ -216,19 +217,77 @@ class ShopProvider extends ChangeNotifier {
       return false;
     }
     if (hasRemoveAds) return false;
-    _isPurchasing = true;
-    _lastMessage = null;
-    notifyListeners();
+    _beginPurchase();
     final ok = await _billing.buyRemoveAds();
-    if (!ok) {
-      _isPurchasing = false;
-      _lastMessage = 'purchaseFailed';
-      notifyListeners();
-    }
+    if (!ok) _onBillingFailure();
     return ok;
   }
 
+  void _beginPurchase() {
+    _purchaseWatchdog?.cancel();
+    _purchaseAttempt++;
+    _isPurchasing = true;
+    _lastMessage = null;
+    notifyListeners();
+    // Safety net if Play never backgrounds the app and never emits an event.
+    _armPurchaseWatchdog(const Duration(seconds: 8));
+  }
+
+  void _armPurchaseWatchdog(Duration delay) {
+    final attempt = _purchaseAttempt;
+    _purchaseWatchdog?.cancel();
+    _purchaseWatchdog = Timer(delay, () => _clearPurchaseIfStill(attempt));
+  }
+
+  void _clearPurchaseIfStill(int attempt) {
+    if (attempt != _purchaseAttempt || !_isPurchasing) return;
+    final state = WidgetsBinding.instance.lifecycleState;
+    // Play is still covering the app. Keep waiting, but never drop the timer.
+    if (state != null && state != AppLifecycleState.resumed) {
+      _armPurchaseWatchdog(const Duration(seconds: 5));
+      return;
+    }
+    _isPurchasing = false;
+    notifyListeners();
+  }
+
+  /// Drops a spinner left behind after Play closes without a stream event.
+  /// Safe to call when opening or closing the sheet. Does not cancel a
+  /// payment that is still running; a later purchased event still grants coins.
+  void releasePurchaseUi() {
+    if (!_isPurchasing) return;
+    final state = WidgetsBinding.instance.lifecycleState;
+    if (state != null && state != AppLifecycleState.resumed) return;
+    _finishPurchaseAttempt();
+  }
+
+  void _finishPurchaseAttempt({String? message}) {
+    _purchaseWatchdog?.cancel();
+    _purchaseAttempt++;
+    final wasPurchasing = _isPurchasing;
+    _isPurchasing = false;
+    if (message != null) _lastMessage = message;
+    if (wasPurchasing || message != null) notifyListeners();
+  }
+
+  void _onBillingFailure() => _finishPurchaseAttempt(message: 'purchaseFailed');
+
+  void _onBillingCanceled() => _finishPurchaseAttempt();
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_isPurchasing) return;
+    if (state == AppLifecycleState.resumed) {
+      // Do not cancel this from `inactive`. On real devices Play's activity
+      // emits inactive again after resume and that used to kill the only timer.
+      _armPurchaseWatchdog(const Duration(milliseconds: 600));
+    }
+  }
+
   Future<void> _handlePurchase(PurchaseDetails purchase) async {
+    _purchaseWatchdog?.cancel();
+    _purchaseAttempt++;
+
     final purchaseId = purchase.purchaseID ?? '${purchase.productID}_${purchase.transactionDate}';
     if (_processedPurchaseIds.contains(purchaseId)) {
       _isPurchasing = false;
@@ -410,6 +469,8 @@ class ShopProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _purchaseWatchdog?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _billing.dispose();
     super.dispose();
   }

@@ -8,6 +8,7 @@ import '../../core/constants/app_strings.dart';
 import '../../core/constants/iap_constants.dart';
 import '../../models/app_theme_preset.dart';
 import '../../models/food_item.dart';
+import '../../models/shop_item.dart';
 import '../../providers/pantry_provider.dart';
 import '../../providers/shop_provider.dart';
 import '../../widgets/coin_balance_chip.dart';
@@ -30,86 +31,36 @@ class _PantryScreenState extends State<PantryScreen> {
   Widget build(BuildContext context) {
     final pantry = context.watch<PantryProvider>();
     final shop = context.watch<ShopProvider>();
-    final preset = shop.activeTheme;
-    final bg = shop.activeBackground;
+    final header = shop.activeBackgroundId == ShopCatalog.defaultBackgroundId
+        ? shop.activeTheme.headerGradient
+        : shop.activeBackground.gradient;
     final cardStyle = shop.activeCardStyle;
     final items = pantry.filtered(category: _filterCategory, status: _filterStatus, query: _query);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? preset.darkBackground : preset.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 180,
+            expandedHeight: MediaQuery.paddingOf(context).top + 142,
             pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(AppStrings.t(context, 'pantryTitle'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-              background: DecoratedBox(
-                decoration: BoxDecoration(gradient: bg.gradient),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 56, 20, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          AppStrings.t(context, 'pantrySubtitle'),
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            _StatChip(
-                              label: AppStrings.t(context, 'statTotal'),
-                              value: '${pantry.totalCount}',
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 8),
-                            _StatChip(
-                              label: AppStrings.t(context, 'statExpiring'),
-                              value: '${pantry.expiringSoonItems.length}',
-                              color: AppColors.warning,
-                            ),
-                            const SizedBox(width: 8),
-                            _StatChip(
-                              label: AppStrings.t(context, 'statExpired'),
-                              value: '${pantry.expiredItems.length}',
-                              color: AppColors.error,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            backgroundColor: header.colors.first,
+            automaticallyImplyLeading: false,
+            flexibleSpace: _PantryHeader(
+              gradient: header,
+              title: AppStrings.t(context, 'pantryTitle'),
+              subtitle: AppStrings.t(context, 'pantrySubtitle'),
+              total: '${pantry.totalCount}',
+              expiring: '${pantry.expiringSoonItems.length}',
+              expired: '${pantry.expiredItems.length}',
+              totalLabel: AppStrings.t(context, 'statTotal'),
+              expiringLabel: AppStrings.t(context, 'statExpiring'),
+              expiredLabel: AppStrings.t(context, 'statExpired'),
             ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: CoinBalanceChip(onTap: null),
-              ),
-            ],
           ),
-          if (!shop.hasRemoveAds)
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.ads_click_outlined, size: 18, color: AppColors.onSurfaceVariant),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(AppStrings.t(context, 'adPlaceholder'), style: const TextStyle(fontSize: 11))),
-                  ],
-                ),
-              ),
-            ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -268,6 +219,110 @@ class _PantryScreenState extends State<PantryScreen> {
   }
 }
 
+class _PantryHeader extends StatelessWidget {
+  final LinearGradient gradient;
+  final String title;
+  final String subtitle;
+  final String total;
+  final String expiring;
+  final String expired;
+  final String totalLabel;
+  final String expiringLabel;
+  final String expiredLabel;
+
+  const _PantryHeader({
+    required this.gradient,
+    required this.title,
+    required this.subtitle,
+    required this.total,
+    required this.expiring,
+    required this.expired,
+    required this.totalLabel,
+    required this.expiringLabel,
+    required this.expiredLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.paddingOf(context).top;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final collapsed = constraints.maxHeight <= top + kToolbarHeight + 8;
+
+        return DecoratedBox(
+          decoration: BoxDecoration(gradient: gradient),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, top, 12, collapsed ? 0 : 12),
+            child: collapsed
+                ? SizedBox(
+                    height: kToolbarHeight,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const CoinBalanceChip(),
+                      ],
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                height: 1.1,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const CoinBalanceChip(),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: _StatChip(label: totalLabel, value: total, color: Colors.white)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _StatChip(label: expiringLabel, value: expiring, color: AppColors.warning)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _StatChip(label: expiredLabel, value: expired, color: AppColors.error)),
+                        ],
+                      ),
+                    ],
+                  ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _StatChip extends StatelessWidget {
   final String label;
   final String value;
@@ -278,16 +333,22 @@ class _StatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value, style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
-          Text(label, style: TextStyle(fontSize: 9, color: Colors.white.withValues(alpha: 0.85))),
+          Text(value, style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w800, color: color, height: 1)),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.9)),
+          ),
         ],
       ),
     );
@@ -348,8 +409,8 @@ class _FoodCard extends StatelessWidget {
       onDismissed: (_) => context.read<PantryProvider>().removeItem(item.id),
       child: Material(
         color: cardStyle.glassEffect
-            ? (isDark ? AppColors.darkSurface.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.85))
-            : (isDark ? AppColors.darkSurface : Colors.white),
+            ? Theme.of(context).colorScheme.surface.withValues(alpha: isDark ? 0.7 : 0.85)
+            : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(cardStyle.borderRadius),
         child: InkWell(
           borderRadius: BorderRadius.circular(cardStyle.borderRadius),

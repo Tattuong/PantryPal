@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../core/constants/app_colors.dart';
 import '../core/navigation/app_navigator.dart';
 
 class AppToast {
@@ -17,7 +16,7 @@ class AppToast {
     Color? color,
   }) {
     final overlay = _overlay(context);
-    if (overlay == null) return;
+    if (overlay == null || !context.mounted) return;
 
     late OverlayEntry entry;
 
@@ -26,7 +25,7 @@ class AppToast {
         title: title,
         message: message,
         icon: icon,
-        color: color ?? AppColors.primary,
+        color: color ?? Theme.of(ctx).colorScheme.primary,
         onDismiss: () => entry.remove(),
       ),
     );
@@ -73,7 +72,6 @@ class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderSta
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Positioned(
       top: MediaQuery.paddingOf(context).top + 12,
       left: 16,
@@ -88,7 +86,7 @@ class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderSta
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : AppColors.surface,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: widget.color.withValues(alpha: 0.35)),
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 20, offset: const Offset(0, 6))],

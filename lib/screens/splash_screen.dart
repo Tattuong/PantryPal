@@ -53,15 +53,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final gradient = context.watch<ShopProvider>().activeTheme.headerGradient;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0E6B44), Color(0xFF1B8A5A), Color(0xFF2ECC71)],
-          ),
-        ),
+        decoration: BoxDecoration(gradient: gradient),
         child: SafeArea(
           child: Center(
             child: Column(

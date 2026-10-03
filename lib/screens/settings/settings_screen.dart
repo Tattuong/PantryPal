@@ -24,10 +24,9 @@ class SettingsScreen extends StatelessWidget {
     final shop = context.watch<ShopProvider>();
     final theme = context.watch<ThemeProvider>();
     final locale = context.watch<LocaleProvider>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(AppStrings.t(context, 'settingsTitle')),
         actions: [
@@ -231,7 +230,7 @@ class SettingsScreen extends StatelessWidget {
             ListTile(
               leading: const Text('🇺🇸', style: TextStyle(fontSize: 22)),
               title: Text(AppStrings.t(context, 'english')),
-              trailing: !locale.isVietnamese ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
+              trailing: !locale.isVietnamese ? Icon(Icons.check_rounded, color: Theme.of(ctx).colorScheme.primary) : null,
               onTap: () async {
                 await locale.setEnglish();
                 if (ctx.mounted) Navigator.pop(ctx);
@@ -240,7 +239,7 @@ class SettingsScreen extends StatelessWidget {
             ListTile(
               leading: const Text('🇻🇳', style: TextStyle(fontSize: 22)),
               title: Text(AppStrings.t(context, 'vietnamese')),
-              trailing: locale.isVietnamese ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
+              trailing: locale.isVietnamese ? Icon(Icons.check_rounded, color: Theme.of(ctx).colorScheme.primary) : null,
               onTap: () async {
                 await locale.setVietnamese();
                 if (ctx.mounted) Navigator.pop(ctx);
@@ -299,7 +298,7 @@ class _InfoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: AppColors.primary),
+      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
       title: Text(title),
       subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
     );
